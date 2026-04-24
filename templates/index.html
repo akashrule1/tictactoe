@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>T20 AI Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1>🏏 T20 AI Prediction Console</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid">
+      <section class="card">
+        <h2>Live Prediction</h2>
+        <form method="post">
+          <input type="hidden" name="action" value="predict" />
+          <label>Runs so far<input name="runs" type="number" step="0.1" required /></label>
+          <label>Overs (e.g., 10.2)<input name="overs" type="number" step="0.1" required /></label>
+          <label>Wickets<input name="wickets" type="number" step="1" min="0" max="10" required /></label>
+          <label>Last over runs<input name="last_over_runs" type="number" step="1" min="0" required /></label>
+          <label>Optional target<input name="target" type="number" step="1" /></label>
+          <button type="submit">Predict</button>
+        </form>
+
+        {% if result %}
+          <div class="result">
+            <p><strong>Predicted Final Score:</strong> {{ result.predicted_final_score }}</p>
+            <p><strong>Range:</strong> {{ result.score_range[0] }} - {{ result.score_range[1] }}</p>
+            <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
+            {% if result.yes_no_prediction %}
+              <p><strong>Target Result:</strong> {{ result.yes_no_prediction }}</p>
+              <p><strong>YES Probability:</strong> {{ result.yes_probability }}%</p>
+            {% endif %}
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <h2>Data Engine</h2>
+        <form method="post" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="convert" />
+          <label>Upload ball-by-ball CSV<input type="file" name="csv_file" accept=".csv" required /></label>
+          <button type="submit">Convert Data</button>
+        </form>
+
+        <form method="post" class="mt-16">
+          <input type="hidden" name="action" value="train" />
+          <button type="submit">Train Model</button>
+        </form>
+
+        <div class="meta">
+          <h3>Model Status</h3>
+          {% if metadata %}
+            <p><strong>Latest version:</strong> {{ metadata.latest_version }}</p>
+            <p><strong>Last trained:</strong> {{ metadata.last_trained }}</p>
+            <p><strong>Rows:</strong> {{ metadata.metrics.rows }}</p>
+            <p><strong>MAE:</strong> {{ metadata.metrics.mae }}</p>
+            <p><strong>RMSE:</strong> {{ metadata.metrics.rmse }}</p>
+            <p><strong>Accuracy:</strong> {{ metadata.metrics.accuracy }}</p>
+          {% else %}
+            <p>No trained model yet.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <section class="card full-width">
+      <h2>Prediction History Dashboard</h2>
+      {% if history %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time (UTC)</th>
+              <th>State</th>
+              <th>Prediction</th>
+              <th>Range</th>
+              <th>Confidence</th>
+              <th>Target Signal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in history %}
+            <tr>
+              <td>{{ row.timestamp_utc }}</td>
+              <td>{{ row.runs }}/{{ row.wickets }} at {{ row.overs }}</td>
+              <td>{{ row.predicted_final }}</td>
+              <td>{{ row.range_min }} - {{ row.range_max }}</td>
+              <td>{{ row.confidence }}%</td>
+              <td>{{ row.yes_no }} {% if row.yes_probability %}({{ row.yes_probability }}%) {% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p>No predictions saved yet.</p>
+      {% endif %}
+    </section>
+  </div>
+</body>
+</html>
